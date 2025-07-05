@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Przeglądarka zdjęć</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        nav { background: #333; color: white; padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; }
+        nav button { background: #555; color: white; margin: 5px; padding: 10px; border: none; cursor: pointer; }
+        nav button:hover { background: #777; }
+        #gallery { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #gallery img {
+            width: 100%;
+            max-width: 1000px;
+            height: auto;
+            max-height: 80vh;
+            object-fit: contain;
+            margin-bottom: 10px;
+        }
+        .controls { margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .controls button { padding: 10px 20px; }
+        @media (max-width: 600px) {
+            nav button, .controls button { padding: 8px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav id="menu"></nav>
+<div id="gallery">
+    <img id="photo" src="" alt="Zdjęcie">
+    <div class="controls">
+        <button onclick="prevPhoto()">Poprzednie</button>
+        <button onclick="nextPhoto()">Następne</button>
+        <button onclick="toggleAutoPlay()" id="autoPlayBtn">Start Auto</button>
+    </div>
+</div>
+
+<script>
+    let currentFolder = '';
+    let currentImages = [];
+    let currentIndex = 0;
+    let autoPlay = false;
+    let autoPlayInterval;
+
+    const menu = document.getElementById('menu');
+    const photo = document.getElementById('photo');
+
+    fetch('/api/folders')
+        .then(res => res.json())
+        .then(folders => {
+            folders.forEach(folder => {
+                const btn = document.createElement('button');
+                btn.textContent = folder;
+                btn.onclick = () => loadFolder(folder);
+                menu.appendChild(btn);
+            });
+        });
+
+    function loadFolder(folder) {
+        currentFolder = folder;
+        currentIndex = 0;
+        fetch(`/api/photos/${folder}`)
+            .then(res => res.json())
+            .then(images => {
+                currentImages = images;
+                showPhoto();
+            });
+    }
+
+    function showPhoto() {
+        if (currentImages.length > 0) {
+            photo.src = `/IMAGES/${currentFolder}/${currentImages[currentIndex]}`;
+        }
+    }
+
+    function nextPhoto() {
+        if (currentImages.length === 0) return;
+        currentIndex = (currentIndex + 1) % currentImages.length;
+        showPhoto();
+    }
+
+    function prevPhoto() {
+        if (currentImages.length === 0) return;
+        currentIndex = (currentIndex - 1 + currentImages.length) % currentImages.length;
+        showPhoto();
+    }
+
+    function toggleAutoPlay() {
+        autoPlay = !autoPlay;
+        const btn = document.getElementById('autoPlayBtn');
+        if (autoPlay) {
+            btn.textContent = 'Stop Auto';
+            autoPlayInterval = setInterval(nextPhoto, 2000);
+        } else {
+            btn.textContent = 'Start Auto';
+            clearInterval(autoPlayInterval);
+        }
+    }
+</script>
+
+</body>
+</html>
